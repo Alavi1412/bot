@@ -3,7 +3,7 @@ set_time_limit(0);
 function makeCurl($method,$datas=[])
 {
     $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL,"https://api.telegram.org/bot214855122:AAGvOydKFnDPXgzKkr0cdumQzYNpULMm9SI/{$method}");
+    curl_setopt($ch, CURLOPT_URL,"https://api.telegram.org/bot233968556:AAHnL3AjEhslHhzJVUnd_xwAUE5lnMQPW80/{$method}");
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS,http_build_query($datas));
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -16,15 +16,11 @@ $chat_id;
 $text;
 $userfirstname;
 $level;
-$fname;
-$lname;
-$email;
-$passwd;
 function levelFinder()
 {
   global $chat_id;
   $level2 = 0;
-  $db=mysqli_connect("localhost","root","test","test2");
+  $db=mysqli_connect("sql209.gigfa.com","gigfa_18319095","14127576","gigfa_18319095_bot1");
   $result2=mysqli_query($db,"SELECT * FROM message WHERE userid={$chat_id}");
   while($row1 = mysqli_fetch_array($result2))
   {
@@ -35,13 +31,14 @@ function levelFinder()
 }
 function begin()
 {
+  global $chat_id;
   makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"شما ثبت نام نکردید.ابتدا ثبت نام کنید",'reply_markup'=>json_encode(['inline_keyboard'=>[[['text'=>"ثبت نام",'callback_data'=>'signup/*+12']]]])]);
 }
 function beginSignup()
 {
   global $chat_id;
   global $userfirstname;
-  $db=mysqli_connect("localhost","root","test","test2");
+  $db=mysqli_connect("sql209.gigfa.com","gigfa_18319095","14127576","gigfa_18319095_bot1");
   mysqli_query($db,"INSERT INTO message (userid,userfirstname,level) VALUES ({$chat_id},\"{$userfirstname}\",1)");
   makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"نام خود را وارد کنید:"]);
 }
@@ -50,7 +47,7 @@ function f_name()
     global $chat_id;
     global $userfirstname;
     global $text;
-    $db=mysqli_connect("localhost","root","test","test2");
+    $db=mysqli_connect("sql209.gigfa.com","gigfa_18319095","14127576","gigfa_18319095_bot1");
     mysqli_query($db,"INSERT INTO message (userid,userfirstname,level,first_name) VALUES ({$chat_id},\"{$userfirstname}\",2,\"{$text}\")");
     makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"نام خانوادگی خود را وارد کنید:"]);
 }
@@ -59,7 +56,7 @@ function l_name()
     global $chat_id;
     global $userfirstname;
     global $text;
-    $db=mysqli_connect("localhost","root","test","test2");
+    $db=mysqli_connect("sql209.gigfa.com","gigfa_18319095","14127576","gigfa_18319095_bot1");
     mysqli_query($db,"INSERT INTO message (userid,userfirstname,level,last_name) VALUES ({$chat_id},\"{$userfirstname}\",3,\"{$text}\")");
     makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"ایمیل خود را وارد کنید:"]);
 }
@@ -67,11 +64,12 @@ function endSingup()
 {
     global $chat_id;
     global $userfirstname;
+    global $level;
     $firsname;
     $lsatname;
     $email;
     $password;
-    $db=mysqli_connect("localhost","root","test","test2");
+    $db=mysqli_connect("sql209.gigfa.com","gigfa_18319095","14127576","gigfa_18319095_bot1");
     $result3=mysqli_query($db,"SELECT * FROM message WHERE userid={$chat_id}");
     while($row3 = mysqli_fetch_array($result2))
     {
@@ -79,13 +77,15 @@ function endSingup()
             $firstname = $row3['first_name'];
         if($row3['level'] == 3)
             $lsatname = $row3['last_name'];
-        if($row3['level'] == 3)
-            $email = $row3['email'];
         if($row3['level'] == 4)
+            $email = $row3['email'];
+        if($row3['level'] == 5)
             $password = $row3['password'];
     }
-    
-
+    mysqli_query($db,"DELETE FROM message WHERE userid = {$chat_id}");
+    mysqli_query($db,"INSERT INTO message (userid,userfirstname,level,password,first_name,last_name,email,credit) VALUES ({$chat_id},\"{$userfirstname}\",6,\"{$password}\",\"{$firstname}\",\"{$lastname}\",\"{$email}\",10)");
+    $level = 6;
+    makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"ثبت نام شما با موفقیت انجام شد."]);
 }
 function e_mail()
 {
@@ -93,10 +93,10 @@ function e_mail()
     global $userfirstname;
     global $text;
     global $level;
-    $db=mysqli_connect("localhost","root","test","test2");
+    $db=mysqli_connect("sql209.gigfa.com","gigfa_18319095","14127576","gigfa_18319095_bot1");
     if($text == 'DeleteSignUpInTheMiddle')
     {
-      mysqli_query($db,"DELETE FROM `message` WHERE userid = {$chat_id}");
+      mysqli_query($db,"DELETE FROM message WHERE userid = {$chat_id}");
       makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"ثبت نام حذف شد."]);
     }else
      {
@@ -123,8 +123,60 @@ function pass_word()
     global $chat_id;
     global $userfirstname;
     global $text;
-    $db=mysqli_connect("localhost","root","test","test2");
-
+    $db=mysqli_connect("sql209.gigfa.com","gigfa_18319095","14127576","gigfa_18319095_bot1");
+    mysqli_query($db,"INSERT INTO message (userid,userfirstname,level,password) VALUES ({$chat_id},\"{$userfirstname}\",5,\"{$text}\")");
+    makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"رمز خود را تایید کنید:"]);
+}
+function confirmPass()
+{
+    global $chat_id;
+    global $text;
+    $password;
+    $db=mysqli_connect("sql209.gigfa.com","gigfa_18319095","14127576","gigfa_18319095_bot1");
+    $result3=mysqli_query($db,"SELECT * FROM message WHERE userid={$chat_id}");
+    while($row3 = mysqli_fetch_array($result3))
+    {
+        if($row3['level'] == 5)
+            $password = $row3['password'];
+    }
+    makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>$password]);
+    if($text == $password)
+    {
+      makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"رمز شما تایید شد."]);
+      endSingup();
+    }else
+    {
+      makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"رمز شما تایید نشد.دوباره تلاش کنید."]);
+      makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"رمز خود را وارد کنید:"]);
+      mysqli_query($db,"DELETE FROM message WHERE userid = {$chat_id} and level = 5");
+    }
+}
+function menu()
+{
+    global $chat_id;
+    makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"انتخاب کنید.",
+    'reply_markup'=>json_encode(
+    ['inline_keyboard'=>[
+      [
+        ['text'=>"ویرایش اکانت",'callback_data'=>'EditT@T']
+      ],
+      [
+        ['text'=>"حذف اکانت",'callback_data'=>'DELEte@E']
+      ],
+      [
+        ['text'=>'مشاهده اکانت','callback_data'=>'SeE@EE']
+      ],
+      [
+        ['text'=>'افزایش اعتبار','callback_data'=>'CreDit@@TTT']
+      ],
+      [
+        ['text'=>'اضافه کردن کانال','callback_data'=>'ChANELl@lL']
+      ],
+      [
+        ['text'=>'ارسال مطلب','callback_data'=>'SendDD@Dd']
+      ]
+    ]
+    ])]);
 }
 
 function handleUser()
@@ -139,7 +191,7 @@ function handleUser()
     {
         foreach($updates->result as $update)
         {
-          $db=mysqli_connect("localhost","root","test","test2");
+          $db=mysqli_connect("sql209.gigfa.com","gigfa_18319095","14127576","gigfa_18319095_bot1");
           if($update->callback_query)
           {
             makeCurl("answerCallbackQuery",["callback_query_id" => $update->callback_query->id]);
@@ -155,36 +207,48 @@ function handleUser()
           $last_updated_id = $update->update_id;
     			$level = 0;
           $level = levelFinder();
-          if($level == 0)
+          makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>$level]);
+          if($level < 6)
           {
-              begin();
-              continue;
-          }
-          if($text == "signup/*+12" && $level == 0)
-          {
-            beginSignup();
-            continue;
-          }
-          if ($level == 1)
-          {
-              f_name();
-              continue;
-          }
-          if($level == 2)
-          {
-              l_name();
-              continue;
-          }
-          if($level == 3)
-          {
-              e_mail();
-              continue;
-          }
-          if($level == 4)
-          {
-              pass_word();
-          }
+              if($level == 0 && $text != "signup/*+12")
+                {
+                    begin();
+                    continue;
+                }
+              if($text == "signup/*+12" && $level == 0)
+                {
+                  beginSignup();
+                  continue;
+                }
+              if ($level == 1)
+              {
+                  f_name();
+                  continue;
+                }
+              if($level == 2)
+              {
+                l_name();
+                continue;
+              }
+              if($level == 3)
+              {
+                  e_mail();
+                  continue;
+              }
+              if($level == 4)
+              {
+                  pass_word();
+                  continue;
+              }
+              if($level == 5);
+                  confirmPass();
+              if($level == 6)
+                  menu();
+            }
 
-  }
+        }
+      }
+      sleep(5);
+      handleUser();
 }
-}
+handleUser();
