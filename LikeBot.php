@@ -16,6 +16,7 @@ $chat_id;
 $text;
 $userfirstname;
 $level;
+$end = 1;
 function levelFinder()    //find user's level and return it
 {
     global $chat_id;
@@ -93,6 +94,7 @@ function endSingup()        //complete the signup and clean database :) , level 
     }
     mysqli_query($db,"DELETE FROM message WHERE userid = {$chat_id}");
     mysqli_query($db,"INSERT INTO message (userid,userfirstname,level,password,first_name,last_name,email,credit) VALUES ({$chat_id},\"{$userfirstname}\",6,\"{$password}\",\"{$firstname}\",\"{$lastname}\",\"{$email}\",{$credit})");
+    mysqli_query($db,"CREATE TABLE table{$userid}(channel varchar(11))");
     $level = 6;
     makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"ثبت نام شما با موفقیت انجام شد."]);
 }
@@ -193,6 +195,7 @@ function deletE()           //delete your account ,level 7 may be inserteb or de
 {
     global $level;
     global $text;
+    global $userfirstname;
     global $chat_id;
     $password;
     $credit;
@@ -219,7 +222,7 @@ function deletE()           //delete your account ,level 7 may be inserteb or de
             }
             mysqli_query($db,"INSERT INTO DeletedAcount (userid,credit) VALUES ({$chat_id},{$credit})");
             mysqli_query($db,"DELETE FROM message WHERE userid = {$chat_id}");
-            mysqli_query($db,"DROP TABLE `bot{$userid}`");
+            mysqli_query($db,"DROP TABLE table{$userid}");
             makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"اکانت شما حذف شد."]);
         }else {
             makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"رمز اشتباه است."]);
@@ -249,11 +252,12 @@ function show()             //just show your detail
     makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"ایمیل شما :{$email}"]);
     makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"اعتبار شما :{$credit}"]);
 }
-function edit()               //edit user account.Most "COMPLEX" Function. **WARNING:SHOULD WRITE EDIT PASSWORD PART.**
+function edit()               //edit user account.Most "COMPLEX" Function.
 {
     global $chat_id;
     global $level;
     global $text;
+    global $userfirstname;
     $hlevel;
     $firstname;
     $lastname;
@@ -284,7 +288,8 @@ function edit()               //edit user account.Most "COMPLEX" Function. **WAR
         ]
         ])]);
         mysqli_query($db,"INSERT INTO message (userid,userfirstname,level) VALUES ({$chat_id},\"{$userfirstname}\",8)");
-    }elseif($level == 8 )
+    }
+    elseif($level == 8 )
     {
         $result3=mysqli_query($db,"SELECT * FROM message WHERE userid={$chat_id}");
         while($row3 = mysqli_fetch_array($result3))
@@ -375,7 +380,177 @@ function edit()               //edit user account.Most "COMPLEX" Function. **WAR
             makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"ایمیل شما ویرایش شد."]);
             menu();
         }
+        elseif($hlevel == "password")
+        {
+            mysqli_query($db,"DELETE FROM message where userid = {$chat_id} and level = 8");
+            $result3=mysqli_query($db,"SELECT * FROM message WHERE userid={$chat_id}");
+            while($row3 = mysqli_fetch_array($result3))
+            {
+                $firstname = $row3['first_name'];
+                $lastname = $row3['last_name'];
+                $credit = $row3['credit'];
+                $password = $row3['password'];
+                $email = $row3['email'];
+            }
+            if($password == $text)
+            {
+                makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"رمز جدید را وارد کنید."]);
+                mysqli_query($db,"INSERT INTO message (userid,userfirstname,level,hlevel) VALUES ({$chat_id},\"{$userfirstname}\",8,\"newpassword\")");
+            }
+            else
+            {
+                makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"رمز اشتباه است."]);
+                menu();
+            }
+        }
+        elseif($hlevel == "newpassword")
+        {
+            mysqli_query($db,"DELETE FROM message where userid = {$chat_id} and level = 8");
+            makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"رمز جدید خود را تایید کنید."]);
+            mysqli_query($db,"INSERT INTO message (userid,userfirstname,password,level,hlevel) VALUES ({$chat_id},\"{$userfirstname}\",\"{$text}\",8,\"confirmpassword\")");
+        }
+        elseif($hlevel == "confirmpassword")
+        {
+            $result3=mysqli_query($db,"SELECT * FROM message WHERE userid={$chat_id} and level=8");
+            while($row3 = mysqli_fetch_array($result3))
+            {
+                $password = $row3['password'];
+            }
+            if($text == $password)
+            {
+                mysqli_query($db,"DELETE FROM message where userid = {$chat_id} and level = 8");
+                $result3=mysqli_query($db,"SELECT * FROM message WHERE userid={$chat_id} and level=6");
+                while($row3 = mysqli_fetch_array($result3))
+                {
+                    $firstname = $row3['first_name'];
+                    $lastname = $row3['last_name'];
+                    $credit = $row3['credit'];
+                    $email = $row3['email'];
+                }
+                mysqli_query($db,"DELETE FROM message where userid = {$chat_id}");
+                mysqli_query($db,"INSERT INTO message (userid,userfirstname,level,password,first_name,last_name,email,credit) VALUES ({$chat_id},\"{$userfirstname}\",6,\"{$text}\",\"{$firstname}\",\"{$lastname}\",\"{$email}\",{$credit})");
+                makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"رمز شما ویرایش شد."]);
+                menu();
+            }
+            else
+            {
+                mysqli_query($db,"DELETE FROM message where userid = {$chat_id} and level = 8");
+                makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"رمز شما تایید نشد."]);
+                menu();
+            }
+        }
   }
+}
+function addchannel()         //add channel to database for sendig article
+{
+    global $chat_id;
+    global $userfirstname;
+    global $text;
+    global $level;
+    $db=mysqli_connect("sql209.gigfa.com","gigfa_18319095","14127576","gigfa_18319095_bot1");
+    if($level == 6)
+    {
+        makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"آدرس کانال خود را وارد کرده و ربات را در آن کانال آدمین کنید.(آدرس بدون  telegram.me/ وارد شود و در ابتدای آن @ وارد کنید.)",
+        'reply_markup'=>json_encode(
+        ['inline_keyboard'=>[
+            [
+              ['text'=>"بستن",'callback_data'=>'CloSEfEFSEG']
+            ]
+          ]
+          ])]);
+          mysqli_query($db,"INSERT INTO message (userid,userfirstname,level) VALUES ({$chat_id},\"{$userfirstname}\",9)");
+    }
+    elseif($level == 9)
+    {
+        if($text == 'CloSEfEFSEG')
+        {
+            mysqli_query($db,"DELETE FROM message where userid = {$chat_id} and level = 9");
+            makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"اضافه کردن کانال بسته شد"]);
+            menu();
+        }
+        else
+        {
+            $updatemsg = json_decode(makeCurl("sendMessage",["text"=>"سلام","chat_id"=>"{$text}"]));
+            mysqli_query($db,"DELETE FROM message where userid = {$chat_id} and level = 9");
+            if($updatemsg->ok == true)
+            {
+                mysqli_query($db,"INSERT INTO table{$chat_id} (channel) VALUES (\"{$text}\")");
+                makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"کانال اضافه شد."]);
+                menu();
+            }
+            else
+            {
+                makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"کانال اضافه نشد"]);
+                if($updatemsg->error_code == 400)
+                    makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"آدرس کانال اشتباه وارد شده است."]);
+                else
+                    makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"ربات به کانال دسترسی ندارد و ادمین نیست."]);
+                menu();
+            }
+        }
+
+    }
+}
+function deletechannel()        //remove channels from user table   DON'T wotk PROPERLY
+{
+    global $chat_id;
+    global $userfirstname;
+    global $text;
+    global $level;
+    $i = 0;
+    $channel;
+    $db=mysqli_connect("sql209.gigfa.com","gigfa_18319095","14127576","gigfa_18319095_bot1");
+    if($level == 8)
+    {
+        mysqli_query($db,"INSERT INTO message (userid,userfirstname,level) VALUES ({$chat_id},\"{$userfirstname}\",10)");
+        $result2=mysqli_query($db,"SELECT * FROM table{$chat_id}");
+        makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"کانال مورد نظر را حذف کنید."]);
+        while($row1 = mysqli_fetch_array($result2))
+        {
+            $i++;
+            $channel =  $row1['channel'];
+            makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"123"]);
+            makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"{$channel}",
+            'reply_markup'=>json_encode(
+            ['inline_keyboard'=>[
+                [
+                  ['text'=>"{$channel}",'callback_data'=>"{$channel}"]
+                ]
+              ]
+              ])]);
+        }
+        if($i == 0)
+        {
+          makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"کانالی یافت نشد"]);
+          mysqli_query($db,"DELETE FROM message where userid = {$chat_id} and level = 10");
+          menu();
+        }
+        else
+        {
+            makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"بستن",
+            'reply_markup'=>json_encode(
+            ['inline_keyboard'=>[
+                [
+                  ['text'=>"بستن",'callback_data'=>'ggsdhsadgClosad']
+                ]
+              ]
+              ])]);
+          }
+    }elseif ($level == 10)
+    {
+        mysqli_query($db,"DELETE FROM message where userid = {$chat_id} and level = 10");
+        if($text == 'ggsdhsadgClosad')
+            {
+                makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"حذف کانال بسته شد."]);
+                menu();
+            }
+          else
+          {
+              mysqli_query($db,"DELETE FROM table{$chat_id} where channel = {$text}");
+              makeCurl("sendMessage",["chat_id"=>$chat_id,"text"=>"کانال مورد نظر حذف شد."]);
+              menu();
+          }
+    }
 }
 
 function handleUser()                        //main body
@@ -385,12 +560,13 @@ function handleUser()                        //main body
     global $text;
     global $userfirstname;
     global $level;
+    global $end;
     $updates = json_decode(makeCurl("getUpdates",["offset"=>($last_updated_id+1)]));
     if($updates->ok == true && count($updates->result) > 0)
     {
         foreach($updates->result as $update)
         {
-          $db=mysqli_connect("sql209.gigfa.com","gigfa_18319095","14127576","gigfa_18319095_bot1");
+        //  $db=mysqli_connect("sql209.gigfa.com","gigfa_18319095","14127576","gigfa_18319095_bot1");
           if($update->callback_query)
           {
             makeCurl("answerCallbackQuery",["callback_query_id" => $update->callback_query->id]);
@@ -454,13 +630,22 @@ function handleUser()                        //main body
               }
               elseif(  ( $level == 6 && $text == 'EditT@T' ) || $level == 8 )
                   edit();
-              else{
-                menu();
-                  }
+              elseif( ( $level == 6 && $text == "ChANELl@lL") || $level == 9)
+                  addchannel();
+              elseif( ( $level == 6 && $text == "CHANEllDeleTET@#$TT" ) || $level == 10)
+                  deletechannel();
+              else
+                  menu();
+          }
+          if($text == 'endandfinish')
+          {
+              makeCurl("getUpdates",["offset"=>($last_updated_id+1)]);
+              $end = 0;
           }
         }
       }
-      sleep(5);
-      handleUser();
 }
-handleUser();
+while($end){
+    handleUser();
+    sleep(5);
+}
